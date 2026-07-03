@@ -820,6 +820,9 @@ Signaling.Standalone.prototype.connect = function() {
 					case 'token_expired':
 						this.processErrorTokenExpired()
 						break
+					case 'no_such_room':
+						this.processErrorNoSuchRoom()
+						break
 					default:
 						console.error('Ignore unknown error: %s', JSON.stringify(data.error))
 						this._trigger('error', [data.error])
@@ -1284,6 +1287,13 @@ Signaling.Standalone.prototype.joinCall = function(token, flags, silent, recordi
 
 Signaling.Standalone.prototype.joinResponseReceived = function(data, token) {
 	console.debug('Joined', data, token)
+
+	if (data.type === 'error' && data.error.code === 'no_such_room') {
+		// Handled in processErrorNoSuchRoom
+		return
+	}
+
+	this._rejoinRoomAfterInvalidSession = null
 	this.signalingRoomJoined = token
 	if (this.pendingJoinCall && token === this.pendingJoinCall.token) {
 		const pendingJoinCallResolve = this.pendingJoinCall.resolve
@@ -1543,6 +1553,30 @@ Signaling.Standalone.prototype.processRoomParticipantsEvent = function(data) {
 			console.error('Unknown room participant event', data)
 			break
 	}
+}
+
+Signaling.Standalone.prototype.processErrorNoSuchRoom = function() {
+	// HPB rejected the room join because the PHP session is no longer valid,
+	// e.g. session was cleaned up as a stale during client being offline
+	// => ws has reconnected to the room with a stale session id.
+	const token = this.currentRoomToken
+	if (!token) {
+		return
+	}
+
+	if (this._rejoinRoomAfterInvalidSession === token) {
+		// prevent re-join loop
+		console.error('Rejoining room with a new session failed, giving up', token)
+		return
+	}
+
+	console.warn('Room join was rejected as the session is no longer valid, rejoining with a new session', token)
+	this._rejoinRoomAfterInvalidSession = token
+	this.resumeId = null
+	this.signalingRoomJoined = null
+	store.dispatch('joinConversation', { token }).catch((error) => {
+		console.error('Failed to rejoin conversation with a new session', token, error)
+	})
 }
 
 Signaling.Standalone.prototype.processErrorTokenExpired = function() {
