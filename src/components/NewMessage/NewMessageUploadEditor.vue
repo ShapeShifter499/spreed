@@ -58,11 +58,14 @@
 					:name="voiceMessageName"
 					:localUrl="voiceMessageLocalURL" />
 			</template>
-			<NcFormBox v-if="!isVoiceMessage && supportConversationSubfolders" class="upload-editor__options">
-				<NcFormBoxSwitch
-					v-model="allowUpdate"
-					:label="t('spreed', 'Allow editing of uploaded files')" />
-			</NcFormBox>
+
+			<NcCheckboxRadioSwitch
+				v-if="!isVoiceMessage && supportConversationSubfolders"
+				v-model="allowUpdate"
+				type="switch">
+				{{ t('spreed', 'Allow editing of uploaded files') }}
+			</NcCheckboxRadioSwitch>
+
 			<div v-if="!supportMediaCaption" class="upload-editor__actions">
 				<NcButton variant="tertiary" @click="handleDismiss">
 					{{ t('spreed', 'Dismiss') }}
@@ -91,8 +94,7 @@
 import { t } from '@nextcloud/l10n'
 import { ref, useId } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcFormBox from '@nextcloud/vue/components/NcFormBox'
-import NcFormBoxSwitch from '@nextcloud/vue/components/NcFormBoxSwitch'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import IconPlus from 'vue-material-design-icons/Plus.vue'
 import AudioPlayer from '../MessagesList/MessagesGroup/Message/MessagePart/AudioPlayer.vue'
@@ -114,8 +116,7 @@ export default {
 		IconPlus,
 		AudioPlayer,
 		NcButton,
-		NcFormBox,
-		NcFormBoxSwitch,
+		NcCheckboxRadioSwitch,
 		NewMessage,
 		TransitionWrapper,
 	},
@@ -312,10 +313,6 @@ export default {
 			outline: 3px dashed var(--color-primary-element);
 			border-radius: var(--border-radius-large);
 		}
-	}
-
-	&__options {
-		margin-block: calc(2 * var(--default-grid-baseline));
 	}
 
 	&__actions {
